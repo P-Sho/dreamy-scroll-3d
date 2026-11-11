@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fallow Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#d8cdbf; --ink:#2a221c; --mute:#6e6256; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { background:var(--bg); color:var(--ink); font-family:'Noto Sans KR',sans-serif; }
+  body { height:900vh; overflow-x:hidden; }
+  canvas#gl { position:fixed; inset:0; width:100vw; height:100vh; display:block; }
+  .mono { font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+  header { position:fixed; top:0; left:0; right:0; display:flex; justify-content:space-between; align-items:center; padding:22px 28px; z-index:5; pointer-events:none; }
+  header .logo { font-weight:600; font-size:20px; letter-spacing:-.02em; }
+  header nav { display:flex; gap:26px; pointer-events:auto; }
+  header nav a { color:var(--ink); text-decoration:none; opacity:.75; }
+  header nav a:hover { opacity:1; }
+  .sec { position:fixed; left:28px; bottom:96px; max-width:460px; z-index:4; opacity:0; pointer-events:none; will-change:opacity,transform; }
+  .sec .num { color:var(--mute); margin-bottom:12px; }
+  .sec h2 { font-weight:300; font-size:clamp(30px,4.4vw,56px); line-height:1.08; letter-spacing:-.03em; }
+  .sec p { margin-top:14px; font-size:15px; line-height:1.6; color:var(--mute); }
+  .sec.hero { left:50%; top:26%; bottom:auto; transform:translate(-50%,-50%); text-align:center; max-width:none; }
+  .sec.hero h2 { font-size:clamp(44px,8vw,112px); font-weight:300; }
+  .btn { display:inline-block; margin-top:22px; padding:12px 22px; border:1px solid var(--ink); border-radius:999px; color:var(--ink); text-decoration:none; pointer-events:auto; }
+  .btn:hover { background:var(--ink); color:var(--bg); }
+  footer { position:fixed; left:28px; right:28px; bottom:26px; display:flex; justify-content:space-between; align-items:center; gap:16px; z-index:5; color:var(--mute); pointer-events:none; }
+  .bar { flex:1; height:1px; background:rgba(0,0,0,.15); position:relative; max-width:320px; }
+  .bar i { position:absolute; left:0; top:0; height:1px; background:var(--ink); width:0; }
+  #loader { position:fixed; inset:0; background:var(--bg); z-index:10; display:flex; align-items:center; justify-content:center; transition:opacity 1.2s ease; }
+  #loader.done { opacity:0; pointer-events:none; }
+  @media (max-width:640px){
+    header { padding:16px; } header nav { gap:14px; }
+    .sec { left:16px; right:16px; bottom:84px; }
+    footer { left:16px; right:16px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="loader" class="mono">Gathering leaves — <span id="pct">0</span>%</div>
+
+<header>
+  <div class="logo">fallow°</div>
+  <nav class="mono"><a href="#">Work</a><a href="#">About</a><a href="#">Contact</a></nav>
+</header>
+
+<section class="sec hero" data-at="0">
+  <div class="num mono">Digital studio — est. 2027</div>
+  <h2>Slow season,<br>warm work.</h2>
+  <p class="mono" style="margin-top:28px">Scroll to explore ↓</p>
+</section>
+<section class="sec" data-at="0.1">
+  <div class="num mono">01 — Canopy</div>
+  <h2>한 잎 한 잎,<br>정성껏 채워 갑니다.</h2>
+  <p>작은 디테일이 모여 하나의 풍경이 됩니다.</p>
+</section>
+<section class="sec" data-at="0.21">
+  <div class="num mono">02 — Let go</div>
+  <h2>붙잡던 것을<br>바람에 맡겨 봅니다.</h2>
+  <p>익숙한 형태를 내려놓아야 새로운 모양이 보입니다.</p>
+</section>
+<section class="sec" data-at="0.4">
+  <div class="num mono">03 — Harvest</div>
+  <h2>작은 열매 하나에도<br>깊이가 있습니다.</h2>
+  <p>오래 익힌 생각을 단단한 결과물로 거둡니다.</p>
+</section>
+<section class="sec" data-at="0.52">
+  <div class="num mono">04 — Passage</div>
+  <h2>계절이 바뀌는<br>문을 지나.</h2>
+  <p>3D, 모션, 웹GL로 화면 너머의 경험을 만듭니다.</p>
+</section>
+<section class="sec" data-at="0.8">
+  <div class="num mono">05 — Character</div>
+  <h2>도토리를 품은<br>작은 친구.</h2>
+  <p>브랜드를 대신할 캐릭터에 숨결을 불어넣습니다.</p>
+</section>
+<section class="sec" data-at="0.97">
+  <div class="num mono">06 — Home</div>
+  <h2>흩어진 잎이 모여<br>다시 한 그루가 됩니다.</h2>
+  <a class="btn mono" href="#">Start a project →</a>
+</section>
+
+<footer class="mono">
+  <span id="coord">N 44°21′ W 72°45′</span>
+  <div class="bar"><i id="prog"></i></div>
+  <span id="pctScroll">000%</span>
+</footer>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const BG = 0xd8cdbf;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(BG);
+scene.fog = new THREE.FogExp2(BG, 0.014);
+const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.1, 150);
+
+// ---------- lights (low golden-hour sun) ----------
+scene.add(new THREE.HemisphereLight(0xfff1dc, 0x8a7a68, 1.0));
+const sun = new THREE.DirectionalLight(0xffd9a8, 2.3);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left:-35, right:35, top:35, bottom:-35, near:1, far:160 });
+sun.shadow.bias = -0.0005;
+scene.add(sun, sun.target);
+
+// ---------- helpers ----------
+function hash(x,y){ const s = Math.sin(x*127.1 + y*311.7) * 43758.5453; return s - Math.floor(s); }
+function noise(x,y){
+  const xi=Math.floor(x), yi=Math.floor(y), xf=x-xi, yf=y-yi;
+  const u=xf*xf*(3-2*xf), v=yf*yf*(3-2*yf);
+  const a=hash(xi,yi), b=hash(xi+1,yi), c=hash(xi,yi+1), d=hash(xi+1,yi+1);
+  return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;
+}
+function fbm(x,y){ let s=0,a=.5,f=1; for(let i=0;i<5;i++){ s+=a*noise(x*f,y*f); f*=2.03; a*=.5; } return s; }
+const sst = (x,a,b)=>THREE.MathUtils.smoothstep(x,a,b);
+const rnd = (a,b)=>a + Math.random()*(b-a);
+const V = (x,y,z)=>new THREE.Vector3(x,y,z);
+
+const AUTUMN = [0xc8642a, 0xd9892f, 0xe0a93d, 0xa8432a, 0xb9772f, 0x9a3b24, 0xd7b04a];
+const leafColor = (c, k=1) => c.setHex(AUTUMN[Math.floor(Math.random()*AUTUMN.length)]).multiplyScalar(k*rnd(.85,1.05));
+
+function grainTex(size=256){
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const x = c.getContext('2d'), img = x.createImageData(size,size);
+  for (let i=0;i<img.data.length;i+=4){ const v = 110 + Math.random()*145; img.data[i]=img.data[i+1]=img.data[i+2]=v; img.data[i+3]=255; }
+  x.putImageData(img,0,0); x.filter = 'blur(1.2px)'; x.drawImage(c,0,0);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+const grain = grainTex();
+function glowTexture(){
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d'), g = x.createRadialGradient(128,128,0,128,128,128);
+  g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.25,'rgba(255,255,255,.5)'); g.addColorStop(1,'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0,0,256,256); return new THREE.CanvasTexture(c);
+}
+const glowTex = glowTexture();
+function cloudTexture(){
+  const s = 256, c = document.createElement('canvas'); c.width = c.height = s;
+  const x = c.getContext('2d');
+  for (let i=0;i<50;i++){
+    const a = Math.random()*Math.PI*2, r = Math.random()*42;
+    const px = 128 + Math.cos(a)*r, py = 128 + Math.sin(a)*r*.65, rad = 26 + Math.random()*58;
+    const g = x.createRadialGradient(px,py,0,px,py,rad);
+    g.addColorStop(0,'rgba(255,255,255,.2)'); g.addColorStop(1,'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0,0,s,s);
+  }
+  return new THREE.CanvasTexture(c);
+}
+const cloudTex = cloudTexture();
+const allClouds = [];
+const cloudSprite = (color, opacity, sx, sy) => {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:cloudTex, color, transparent:true, opacity, depthWrite:false }));
+  s.scale.set(sx, sy, 1); s.material.rotation = Math.random()*Math.PI*2;
+  s.userData.o = opacity; s.userData.near = Math.max(sx, sy)*.45;
+  allClouds.push(s); return s;
+};
+
+// ---------- detailed maple leaf (drawn into an alpha texture, cut out with alphaTest) ----------
+// lobes: [axis angle, length, half-width] — big top lobe, two upper side lobes, two small lower lobes
+const LOBES = [
+  [Math.PI/2,        1.00, .6],
+  [Math.PI/2 - 1.0,   .88, .56],
+  [Math.PI/2 + 1.0,   .88, .56],
+  [Math.PI/2 - 1.95,  .5,  .44],
+  [Math.PI/2 + 1.95,  .5,  .44],
+];
+function leafRadius(a){
+  let r = .36;
+  for (const [la, len, w] of LOBES){
+    const ad = Math.abs(Math.atan2(Math.sin(a - la), Math.cos(a - la)));
+    if (ad > w) continue;
+    const u = ad / w;                                                     // 0 on the lobe axis → 1 at its edge
+    let shape = Math.pow(1 - u, 1.25);                                    // pointed tip
+    shape += (len > .6 ? .3 : .16) * Math.max(0, 1 - Math.abs(u - .5)/.13);   // pair of side points
+    const teeth = Math.pow((u*9) % 1, 2.2) * .07 * (1 - u*.5);            // serrated edge
+    r = Math.max(r, .36 + len*.68*shape + teeth*len);
+  }
+  // petiole notch at the bottom
+  const bd = Math.abs(Math.atan2(Math.sin(a + Math.PI/2), Math.cos(a + Math.PI/2)));
+  if (bd < .35) r *= .72 + .28*(bd/.35);
+  return r;
+}
+function makeLeafTexture(){
+  const S = 512, c = document.createElement('canvas'); c.width = c.height = S;
+  const x = c.getContext('2d');
+  const cx = S/2, cy = S*.6, K = S*.42;
+  const pt = (a, r) => [cx + Math.cos(a)*r*K, cy - Math.sin(a)*r*K];
+
+  // outline
+  x.beginPath();
+  for (let i=0;i<=1440;i++){ const a = i/1440*Math.PI*2, [px,py] = pt(a, leafRadius(a)); i ? x.lineTo(px,py) : x.moveTo(px,py); }
+  x.closePath();
+  const fill = x.createRadialGradient(cx, cy, 0, cx, cy, K*1.05);
+  fill.addColorStop(0, '#ffffff'); fill.addColorStop(.55, '#e9e9e9'); fill.addColorStop(1, '#a9a9a9');
+  x.fillStyle = fill; x.fill();
+  x.save(); x.clip();
+  // blotches and speckles for an aged, natural surface
+  for (let i=0;i<26;i++){ const g = x.createRadialGradient(0,0,0,0,0,1); const px = Math.random()*S, py = Math.random()*S, rr = 10 + Math.random()*40;
+    const bg = x.createRadialGradient(px,py,0,px,py,rr); bg.addColorStop(0,'rgba(60,40,30,.18)'); bg.addColorStop(1,'rgba(60,40,30,0)');
+    x.fillStyle = bg; x.fillRect(px-rr, py-rr, rr*2, rr*2); }
+  for (let i=0;i<500;i++){ x.fillStyle = `rgba(0,0,0,${Math.random()*.08})`; x.fillRect(Math.random()*S, Math.random()*S, 2, 2); }
+  // veins: primary from the petiole junction to each lobe tip, secondary toward the teeth
+  x.lineCap = 'round';
+  for (const [la, len] of LOBES){
+    const tip = leafRadius(la)*.94;
+    const [tx, ty] = pt(la, tip);
+    x.strokeStyle = 'rgba(255,248,235,.75)'; x.lineWidth = len > .6 ? 4.5 : 3;
+    x.beginPath(); x.moveTo(cx, cy); x.quadraticCurveTo(...pt(la + .04, tip*.5), tx, ty); x.stroke();
+    x.lineWidth = len > .6 ? 1.8 : 1.3; x.strokeStyle = 'rgba(255,248,235,.5)';
+    for (let k=1;k<=6;k++){
+      const f = k/7, [bx, by] = pt(la, tip*f);
+      for (const sgn of [-1, 1]){
+        const ba = la + sgn*(.55 + .25*f);
+        const L = leafRadius(ba)*K*(.38 - f*.2);
+        x.beginPath(); x.moveTo(bx, by);
+        x.quadraticCurveTo(bx + Math.cos(ba)*L*.5, by - Math.sin(ba)*L*.5 - 4, bx + Math.cos(ba)*L, by - Math.sin(ba)*L);
+        x.stroke();
+      }
+    }
+  }
+  x.restore();
+  // darker rim
+  x.strokeStyle = 'rgba(40,25,15,.35)'; x.lineWidth = 2; x.stroke();
+  // petiole (stem)
+  x.strokeStyle = '#8a8a8a'; x.lineWidth = 7; x.lineCap = 'round';
+  x.beginPath(); x.moveTo(cx, cy + K*.2); x.quadraticCurveTo(cx + 6, cy + K*.45, cx - 4, cy + K*.68); x.stroke();
+
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+const leafTex = makeLeafTexture();
+// plane slightly curled along the midrib, leaf pivot near the petiole junction
+const leafGeo = new THREE.PlaneGeometry(1.3, 1.3, 8, 8);
+{ const p = leafGeo.attributes.position;
+  for (let i=0;i<p.count;i++){ const x = p.getX(i), y = p.getY(i); p.setZ(i, x*x*.45 + y*.1 + Math.sin(y*6)*.02); }
+  leafGeo.translate(0, .13, 0);
+  leafGeo.computeVertexNormals(); }
+const leafMat = new THREE.MeshStandardMaterial({ color:0xffffff, map:leafTex, alphaTest:.5, side:THREE.DoubleSide, roughness:.62, bumpMap:leafTex, bumpScale:1.2 });
+const leafDepthMat = new THREE.MeshDepthMaterial({ depthPacking:THREE.RGBADepthPacking, map:leafTex, alphaTest:.5 });
+
+// ---------- stations ----------
+const TREE = V(0,0,0), ACORN = V(0,9,-70), PORTAL = V(0,8,-140), CREATURE = V(0,0,-210), TREE2 = V(0,0,-275);
+
+function heightAt(x,z){
+  let h = (fbm(x*.03+10, z*.03) - .5) * 4;
+  const side = sst(Math.abs(x), 16, 90);
+  h += side * Math.pow(fbm(x*.012, z*.012+5), 2) * 70;
+  for (const [p, r] of [[TREE,12],[CREATURE,12],[TREE2,13]]) {
+    const d = Math.hypot(x-p.x, z-p.z);
+    h *= sst(d, r, r*2.2);
+  }
+  for (const p of [TREE, TREE2]) h += .8*Math.exp(-((x-p.x)**2 + (z-p.z)**2)/30);   // little knoll under the tree
+  return h;
+}
+
+// ---------- terrain (patchy autumn field) ----------
+{
+  const geo = new THREE.PlaneGeometry(420, 420, 260, 260);
+  geo.rotateX(-Math.PI/2); geo.translate(0, 0, -110);
+  const pos = geo.attributes.position, col = new Float32Array(pos.count*3);
+  const cA = new THREE.Color(0x9c8a68), cB = new THREE.Color(0xc4a172), cC = new THREE.Color(0xb36e3c), c = new THREE.Color();
+  for (let i=0;i<pos.count;i++){
+    const x = pos.getX(i), z = pos.getZ(i);
+    pos.setY(i, heightAt(x, z));
+    c.copy(cA).lerp(cB, fbm(x*.05, z*.05)).lerp(cC, sst(fbm(x*.09+40, z*.09), .55, .75)*.6);
+    col.set([c.r, c.g, c.b], i*3);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.computeVertexNormals();
+  const gTex = grain.clone(); gTex.repeat.set(90, 90); gTex.needsUpdate = true;
+  const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.95, bumpMap:gTex, bumpScale:.6 }));
+  ground.receiveShadow = true;
+  scene.add(ground);
+}
+
+// ---------- distant autumn forest on both sides ----------
+{
+  const N = 280;
+  const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(.18, .3, 1, 6), new THREE.MeshStandardMaterial({ color:0x4e3b2e, roughness:1 }), N);
+  const crowns = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshStandardMaterial({ color:0xffffff, roughness:.9, flatShading:true }), N);
+  const o = new THREE.Object3D(), c = new THREE.Color();
+  for (let i=0;i<N;i++){
+    const sideSign = Math.random() < .5 ? -1 : 1;
+    const x = sideSign*rnd(28, 80), z = rnd(70, -320), y = heightAt(x, z);
+    const th = rnd(2.5, 5), cr = rnd(2, 4.2);
+    o.position.set(x, y + th/2, z); o.rotation.set(0,0,0); o.scale.set(1, th, 1); o.updateMatrix(); trunks.setMatrixAt(i, o.matrix);
+    o.position.set(x, y + th + cr*.7, z); o.rotation.set(rnd(0,3), rnd(0,3), 0); o.scale.set(cr, cr*rnd(1.1,1.5), cr); o.updateMatrix(); crowns.setMatrixAt(i, o.matrix);
+    crowns.setColorAt(i, leafColor(c, .9));
+  }
+  crowns.receiveShadow = true;
+  scene.add(trunks, crowns);
+}
+
+// ---------- fallen leaves on the ground ----------
+{
+  const N = 2600, im = new THREE.InstancedMesh(leafGeo, leafMat, N);
+  const o = new THREE.Object3D(), c = new THREE.Color();
+  for (let i=0;i<N;i++){
+    let x, z;
+    const k = Math.random();
+    const ctr = k < .3 ? TREE : k < .55 ? TREE2 : k < .75 ? CREATURE : null;
+    if (ctr){ const a = rnd(0, Math.PI*2), r = Math.pow(Math.random(), .6)*16; x = ctr.x + Math.cos(a)*r; z = ctr.z + Math.sin(a)*r; }
+    else { x = rnd(-16, 16); z = rnd(40, -300); }
+    o.position.set(x, heightAt(x, z) + .04, z);
+    o.rotation.set(-Math.PI/2 + rnd(-.25,.25), 0, rnd(0, Math.PI*2));
+    o.scale.setScalar(rnd(.35, .7));
+    o.updateMatrix(); im.setMatrixAt(i, o.matrix);
+    im.setColorAt(i, leafColor(c, .8));
+  }
+  im.receiveShadow = true;
+  scene.add(im);
+}
+
+// ---------- maple tree whose leaves blow away and gather back ----------
+function makeTree(position, rotY){
+  const tree = new THREE.Group();
+  const barkTex = grain.clone(); barkTex.repeat.set(1, 4); barkTex.needsUpdate = true;
+  const bark = new THREE.MeshStandardMaterial({ color:0x5b4434, roughness:.95, bumpMap:barkTex, bumpScale:2.5 });
+
+  // trunk with a slight lean + branches
+  const trunkGeo = new THREE.CylinderGeometry(.42, .75, 6.4, 20, 8);
+  { const p = trunkGeo.attributes.position;
+    for (let i=0;i<p.count;i++){ const y = p.getY(i), k = 1 + (fbm(Math.atan2(p.getZ(i), p.getX(i))*2+5, y*.8)-.5)*.25;
+      p.setXYZ(i, p.getX(i)*k + Math.sin(y*.4)*.15, y, p.getZ(i)*k); }
+    trunkGeo.computeVertexNormals(); }
+  const trunk = new THREE.Mesh(trunkGeo, bark);
+  trunk.position.y = 3.2; trunk.castShadow = trunk.receiveShadow = true;
+  tree.add(trunk);
+  for (let i=0;i<7;i++){
+    const a = i/7*Math.PI*2 + rnd(-.3,.3), len = rnd(2.4, 3.6);
+    const dir = V(Math.cos(a)*.85, rnd(.6,1.1), Math.sin(a)*.85).normalize();
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(.06, .2, len, 8), bark);
+    const start = V(0, rnd(5.2, 6.2), 0);
+    b.position.copy(start).addScaledVector(dir, len/2);
+    b.quaternion.setFromUnitVectors(V(0,1,0), dir);
+    b.castShadow = true; tree.add(b);
+  }
+  // roots
+  for (let i=0;i<5;i++){
+    const a = i/5*Math.PI*2 + rnd(-.2,.2);
+    const r = new THREE.Mesh(new THREE.SphereGeometry(.5, 12, 8), bark);
+    r.position.set(Math.cos(a)*.7, .05, Math.sin(a)*.7); r.scale.set(1.5, .35, .5); r.rotation.y = -a;
+    tree.add(r);
+  }
+
+  // dense inner crown so the canopy reads solid
+  const CTR = V(0, 8.2, 0), CR = 4.3;
+  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(CR*.82, 2), new THREE.MeshStandardMaterial({ color:0x8a3e1f, roughness:1, emissive:0xff8a3c, emissiveIntensity:.06 }));
+  core.position.copy(CTR); core.scale.set(1, .85, 1); core.castShadow = true;
+  tree.add(core);
+
+  // canopy leaves (instanced) on a fibonacci ellipsoid
+  const N = 1300;
+  const im = new THREE.InstancedMesh(leafGeo, leafMat, N);
+  im.castShadow = im.receiveShadow = true; im.frustumCulled = false;
+  im.customDepthMaterial = leafDepthMat;                // leaf-shaped shadows
+  const o = new THREE.Object3D(), c = new THREE.Color(), anim = [];
+  const golden = Math.PI*(3 - Math.sqrt(5));
+  for (let i=0;i<N;i++){
+    const y = 1 - (i/(N-1))*1.75, rr = Math.sqrt(Math.max(0, 1 - y*y)), ph = i*golden;
+    const dir = V(Math.cos(ph)*rr, y, Math.sin(ph)*rr);
+    const rad = CR*rnd(.86, 1.08);
+    o.position.set(CTR.x + dir.x*rad, CTR.y + dir.y*rad*.85, CTR.z + dir.z*rad);
+    o.lookAt(o.position.x + dir.x, o.position.y + dir.y, o.position.z + dir.z);
+    o.rotateZ(rnd(0, Math.PI*2)); o.rotateX(rnd(-.6,.6));
+    o.scale.setScalar(rnd(.75, 1.1));
+    o.updateMatrix(); im.setMatrixAt(i, o.matrix);
+    im.setColorAt(i, leafColor(c));
+    const home = { p:o.position.clone(), q:o.quaternion.clone(), s:o.scale.clone() };
+    const hd = V(dir.x, 0, dir.z); if (hd.lengthSq() < 1e-4) hd.set(0,0,1); hd.normalize();
+    const to = home.p.clone().addScaledVector(hd, rnd(5, 16)); to.y += rnd(-2, 5); to.x += rnd(0, 6);   // a little wind drift
+    anim.push({ i, home, to, q2:new THREE.Quaternion().setFromEuler(new THREE.Euler(rnd(-3,3), rnd(-3,3), rnd(-3,3))),
+                axis:V(rnd(-1,1), rnd(-1,1), rnd(-1,1)).normalize(), delay:rnd(0,.35), spin:rnd(.4,1.4), w:rnd(0,6) });
+  }
+  tree.add(im);
+
+  // hanging lantern (the accent light)
+  const string = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, 1.4, 4), new THREE.MeshBasicMaterial({ color:0x2d241d }));
+  string.position.set(2.6, 5.0, 1.4);
+  const lamp = new THREE.Mesh(new THREE.CylinderGeometry(.2, .24, .45, 10), new THREE.MeshStandardMaterial({ color:0xffd8a8, emissive:0xffa040, emissiveIntensity:3 }));
+  lamp.position.set(2.6, 4.1, 1.4);
+  const warm = new THREE.PointLight(0xffa860, 30, 12, 2);
+  warm.position.copy(lamp.position);
+  tree.add(string, lamp, warm);
+
+  tree.position.copy(position); tree.rotation.y = rotY;
+  scene.add(tree);
+
+  const P = V(0,0,0), Q = new THREE.Quaternion(), T = new THREE.Quaternion(), Mx = new THREE.Matrix4();
+  let lastS = -1;
+  // s: 0 = full canopy, 1 = every leaf carried away by the wind
+  const update = (s, t) => {
+    if (s === 0 && lastS === 0) return;
+    lastS = s;
+    for (const a of anim){
+      const e0 = THREE.MathUtils.clamp((s - a.delay)/.65, 0, 1), e = e0*e0*(3 - 2*e0);
+      P.lerpVectors(a.home.p, a.to, e);
+      const ang = a.spin*e, cs = Math.cos(ang), sn = Math.sin(ang);
+      P.set(P.x*cs - P.z*sn, P.y + Math.sin(t*1.1 + a.w)*.5*e, P.x*sn + P.z*cs);
+      Q.slerpQuaternions(a.home.q, a.q2, e);
+      Q.multiply(T.setFromAxisAngle(a.axis, t*1.3*e));             // leaves flutter
+      Mx.compose(P, Q, a.home.s);
+      im.setMatrixAt(a.i, Mx);
+    }
+    im.instanceMatrix.needsUpdate = true;
+    const k = 1 - sst(s, 0, .45);
+    core.scale.set(k, .85*k, k); core.visible = k > .01;
+    warm.intensity = 30*(1 - s*.6);
+  };
+  return { group:tree, update };
+}
+const treeA = makeTree(TREE, .35);
+const treeB = makeTree(TREE2, .45);
+
+// ---------- floating acorn ----------
+const acorn = new THREE.Group();
+function makeAcornMeshes(scale){
+  const g = new THREE.Group();
+  const nutGeo = new THREE.SphereGeometry(1, 48, 32);
+  { const p = nutGeo.attributes.position;
+    for (let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i);
+      const k = y < 0 ? 1 - Math.pow(-y, 2.2)*.55 : 1;                 // tapered bottom
+      p.setXYZ(i, x*k*.82, y*1.15, z*k*.82); }
+    nutGeo.computeVertexNormals(); }
+  const nut = new THREE.Mesh(nutGeo, new THREE.MeshPhysicalMaterial({ color:0x9a5a2a, roughness:.32, clearcoat:.6, clearcoatRoughness:.3 }));
+  nut.castShadow = true;
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(.08, .22, 8), new THREE.MeshStandardMaterial({ color:0x4a3322 }));
+  tip.position.y = -1.22; tip.rotation.x = Math.PI;
+  const capTex = grain.clone(); capTex.repeat.set(6, 3); capTex.needsUpdate = true;
+  const capGeo = new THREE.SphereGeometry(.98, 48, 20, 0, Math.PI*2, 0, Math.PI*.55);
+  { const p = capGeo.attributes.position;
+    for (let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i);
+      const scale = 1 + .06*Math.abs(Math.sin(Math.atan2(z,x)*14 + y*16));            // scaly ridges
+      p.setXYZ(i, x*scale, y*.75*scale, z*scale); }
+    capGeo.computeVertexNormals(); }
+  const cap = new THREE.Mesh(capGeo, new THREE.MeshStandardMaterial({ color:0x6e5235, roughness:1, bumpMap:capTex, bumpScale:3 }));
+  cap.position.y = .55; cap.castShadow = true;
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(.06, .1, .45, 8), cap.material);
+  stem.position.set(.05, 1.42, 0); stem.rotation.z = -.3;
+  g.add(nut, tip, cap, stem);
+  g.scale.setScalar(scale);
+  return g;
+}
+acorn.add(makeAcornMeshes(3.2));
+const acornLeaves = new THREE.InstancedMesh(leafGeo, leafMat, 14);
+{ const c = new THREE.Color(); for (let i=0;i<14;i++){ acornLeaves.setColorAt(i, leafColor(c)); } }
+acornLeaves.userData.data = Array.from({ length:14 }, (_, i) => ({ a:i/14*Math.PI*2, r:rnd(6.5,9.5), y:rnd(-3,3), sp:rnd(.15,.35), ax:V(rnd(-1,1),rnd(-1,1),rnd(-1,1)).normalize() }));
+acornLeaves.castShadow = true; acornLeaves.frustumCulled = false; acornLeaves.customDepthMaterial = leafDepthMat;
+acorn.add(acornLeaves);
+acorn.position.copy(ACORN);
+acorn.rotation.z = .25;
+scene.add(acorn);
+
+// ---------- passage gate: segmented wooden rings + leaf vortex ----------
+const portal = new THREE.Group();
+{
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(5.2, .05, 12, 220),
+    new THREE.MeshStandardMaterial({ color:0xffe2b8, emissive:0xffc77a, emissiveIntensity:2 }));
+  portal.add(ring);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map:glowTex, color:0xffe2b8, transparent:true, opacity:.9, depthWrite:false, blending:THREE.AdditiveBlending }));
+  halo.scale.set(20,20,1); portal.add(halo);
+
+  const N = 1400, arr = new Float32Array(N*3), seed = new Float32Array(N);
+  for (let i=0;i<N;i++) seed[i] = Math.random();
+  const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(arr,3));
+  const dust = new THREE.Points(pg, new THREE.PointsMaterial({ color:0xffcf8a, size:.12, transparent:true, opacity:.85, depthWrite:false, blending:THREE.AdditiveBlending }));
+  dust.userData = { seed, N }; portal.add(dust);
+  portal.add(new THREE.PointLight(0xffd7a0, 50, 30, 2));
+
+  const barkTex = grain.clone(); barkTex.repeat.set(4, 1); barkTex.needsUpdate = true;
+  const wood = new THREE.MeshStandardMaterial({ color:0x6f5745, roughness:.9, bumpMap:barkTex, bumpScale:1.5 });
+  const segs = [];
+  const mkRing = (R, n, tube, depth, fill) => {
+    const g = new THREE.Group();
+    for (let i=0;i<n;i++){
+      const arc = Math.PI*2/n*fill*(.85 + Math.random()*.2);
+      const geo = new THREE.TorusGeometry(R, tube, 14, 32, arc);
+      { const p = geo.attributes.position;
+        for (let k=0;k<p.count;k++){ const x=p.getX(k), y=p.getY(k), z=p.getZ(k);
+          const j = 1 + (fbm(x*.5+R, y*.5+z)-.5)*.06; p.setXYZ(k, x*j, y*j, z*j); }
+        geo.computeVertexNormals(); }
+      const m = new THREE.Mesh(geo, wood);
+      m.rotation.z = i/n*Math.PI*2; m.scale.z = depth; m.castShadow = true;
+      m.userData = { arc, wob:Math.random()*6, k:.7 + Math.random()*.6 };
+      g.add(m); segs.push(m);
+    }
+    portal.add(g); return g;
+  };
+  const outer = mkRing(6.8, 11, .8, 1.7, .78);
+  const inner = mkRing(3.5, 7, .4, 1.3, .7);
+  inner.rotation.x = .3; inner.position.z = -1.5;
+
+  const vortex = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.ShaderMaterial({
+    transparent:true, depthWrite:false, fog:false,
+    uniforms:{ uTime:{ value:0 }, uOpen:{ value:0 } },
+    vertexShader:`varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+    fragmentShader:`
+      uniform float uTime, uOpen; varying vec2 vUv;
+      float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
+      float n2(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+        return mix(mix(h(i),h(i+vec2(1,0)),f.x), mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x), f.y); }
+      float fbm(vec2 p){ float s=0., a=.5; for(int i=0;i<5;i++){ s+=a*n2(p); p*=2.03; a*=.5; } return s; }
+      void main(){
+        vec2 p = vUv*2. - 1.; float r = length(p); float a = atan(p.y, p.x);
+        float sw = a + uTime*.35 + 2.4/(r + .25);
+        vec2 q = vec2(cos(sw), sin(sw)) * (r*2.5 + .4);
+        float n = fbm(q*1.6 + uTime*.08);
+        float core = exp(-r*r*(10. - uOpen*6.));
+        vec3 col = mix(vec3(.45,.34,.25), vec3(1.,.93,.8), clamp(n*n*1.1 + core*1.4, 0., 1.));
+        float alpha = (smoothstep(1., .25, r)*(.35 + .65*n) + core) * smoothstep(1., .82, r);
+        gl_FragColor = vec4(col * (1. + core*1.5), clamp(alpha, 0., 1.));
+      }`,
+  }));
+  vortex.position.z = -.6; portal.add(vortex);
+
+  const tunnel = new THREE.Group();
+  for (let i=0;i<70;i++){
+    const a = Math.random()*Math.PI*2, r = 8 + Math.random()*9;
+    const s = cloudSprite(i%2 ? 0xe2d4c0 : 0x7d6a58, .3 + Math.random()*.25, 12 + Math.random()*12, 9 + Math.random()*8);
+    s.position.set(Math.cos(a)*r, Math.sin(a)*r, 22 - Math.random()*36);
+    tunnel.add(s);
+  }
+  portal.add(tunnel);
+
+  // swirling leaves around the passage
+  const LN = 220, swirl = new THREE.InstancedMesh(leafGeo, leafMat, LN);
+  swirl.frustumCulled = false;
+  { const c = new THREE.Color(); for (let i=0;i<LN;i++) swirl.setColorAt(i, leafColor(c)); }
+  swirl.userData.data = Array.from({ length:LN }, () => ({ a:rnd(0,Math.PI*2), r:rnd(7,15), z:rnd(-14,20), sp:rnd(.2,.5), s:rnd(.5,1), ax:V(rnd(-1,1),rnd(-1,1),rnd(-1,1)).normalize(), w:rnd(0,6) }));
+  portal.add(swirl);
+
+  const mass = cloudSprite(0x5a4a3e, .8, 46, 20); mass.position.set(0, 13, -8);
+  const mass2 = cloudSprite(0x6b5a4c, .6, 30, 14); mass2.position.set(-12, 10, -4);
+  portal.add(mass, mass2);
+  const frags = [];
+  for (let i=0;i<9;i++){
+    const f = new THREE.Mesh(new THREE.DodecahedronGeometry(.4 + Math.random()*1.1, 0), wood);
+    const a = Math.random()*Math.PI*2;
+    f.userData = { p:V(Math.cos(a)*(9 + Math.random()*5), 3 + Math.random()*7 - (i%3)*5, (Math.random()-.5)*8), w:Math.random()*6 };
+    f.castShadow = true; frags.push(f); portal.add(f);
+  }
+  portal.userData = { ring, dust, segs, outer, inner, vortex, tunnel, frags, halo, swirl };
+  portal.position.copy(PORTAL);
+  scene.add(portal);
+}
+
+// ---------- fluffy squirrel on a tree stump ----------
+const furTime = { value:0 };
+const critter = new THREE.Group();
+const critterHead = new THREE.Group();
+{
+  const barkTex = grain.clone(); barkTex.repeat.set(3, 1); barkTex.needsUpdate = true;
+  const bark = new THREE.MeshStandardMaterial({ color:0x5b4434, roughness:.95, bumpMap:barkTex, bumpScale:2 });
+  const stump = new THREE.Mesh(new THREE.CylinderGeometry(3.0, 3.4, 1.1, 64), bark);
+  stump.position.y = .55; stump.castShadow = stump.receiveShadow = true;
+  const top = new THREE.Mesh(new THREE.CircleGeometry(2.98, 64), new THREE.MeshStandardMaterial({ color:0xc49a6c, roughness:.8 }));
+  top.rotation.x = -Math.PI/2; top.position.y = 1.105; top.receiveShadow = true;
+  critter.add(stump, top);
+  for (let i=0;i<6;i++){
+    const a = i/6*Math.PI*2 + .3, r = new THREE.Mesh(new THREE.SphereGeometry(.8, 16, 10), bark);
+    r.position.set(Math.cos(a)*3.1, .15, Math.sin(a)*3.1); r.scale.set(1.5, .45, .7); r.rotation.y = -a;
+    r.castShadow = true; critter.add(r);
+  }
+  // tree rings on the stump top + faint rings in the ground (echo of the passage ripple)
+  const ringMat = new THREE.MeshStandardMaterial({ color:0x8f6a46, roughness:.8 });
+  for (let r=.35; r<2.9; r+=.38 + Math.random()*.1){
+    const tr = new THREE.Mesh(new THREE.TorusGeometry(r, .022, 6, 120), ringMat);
+    tr.rotation.x = Math.PI/2; tr.position.y = 1.11; critter.add(tr);
+  }
+  const groundRing = new THREE.MeshStandardMaterial({ color:0xe0c8a0, roughness:.6, emissive:0xffffff, emissiveIntensity:.1 });
+  for (const r of [5.6, 7.2, 11]){
+    const gr = new THREE.Mesh(new THREE.TorusGeometry(r, .035, 6, 160), groundRing);
+    gr.rotation.x = Math.PI/2; gr.position.y = .05; critter.add(gr);
+  }
+  // mushrooms around the stump
+  const stemMat = new THREE.MeshStandardMaterial({ color:0xeee2cc, roughness:.8 });
+  const capMat = new THREE.MeshStandardMaterial({ color:0xb0603a, roughness:.55 });
+  for (let i=0;i<10;i++){
+    const a = i/10*Math.PI*2 + rnd(-.2,.2), dist = rnd(6.5, 9.5), s = rnd(.6, 1.7);
+    const m = new THREE.Group();
+    const st = new THREE.Mesh(new THREE.CylinderGeometry(.18, .26, 1, 12), stemMat); st.position.y = .5;
+    const cp = new THREE.Mesh(new THREE.SphereGeometry(.7, 24, 12, 0, Math.PI*2, 0, Math.PI/2), capMat); cp.position.y = .95; cp.scale.y = .7;
+    st.castShadow = cp.castShadow = true;
+    m.add(st, cp); m.scale.setScalar(s);
+    m.position.set(Math.cos(a)*dist, -.05, Math.sin(a)*dist); m.rotation.set(rnd(-.15,.15), 0, rnd(-.15,.15));
+    critter.add(m);
+  }
+
+  // ---- shell fur with per-part vertex colors ----
+  const GLSL_NOISE = `
+    float fh31(vec3 p){ p = fract(p*0.3183099 + .1); p *= 17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+    float fvn(vec3 x){ vec3 i = floor(x), f = fract(x); f = f*f*(3.-2.*f);
+      return mix(mix(mix(fh31(i), fh31(i+vec3(1,0,0)), f.x), mix(fh31(i+vec3(0,1,0)), fh31(i+vec3(1,1,0)), f.x), f.y),
+                 mix(mix(fh31(i+vec3(0,0,1)), fh31(i+vec3(1,0,1)), f.x), mix(fh31(i+vec3(0,1,1)), fh31(i+vec3(1,1,1)), f.x), f.y), f.z); }`;
+  const LAYERS = 36, FUR_LEN = .2;
+  const furMats = [];
+  for (let i=0;i<=LAYERS;i++){
+    const layer = i/LAYERS;
+    const m = new THREE.MeshStandardMaterial({ color:0xffffff, vertexColors:true, roughness:1 });
+    m.onBeforeCompile = sh => {
+      sh.uniforms.uLayer = { value:layer }; sh.uniforms.uTime = furTime;
+      sh.vertexShader = `attribute float furLen; uniform float uLayer; uniform float uTime; varying vec3 vFurP; ${GLSL_NOISE}\n` +
+        sh.vertexShader.replace('#include <begin_vertex>', `
+        #include <begin_vertex>
+        vFurP = position;
+        float fh = uLayer * furLen;
+        vec3 curl = vec3(fvn(position*2.6), fvn(position*2.6+11.3), fvn(position*2.6+27.1)) - .5;
+        vec3 messy = vec3(fvn(position*9.0+3.), fvn(position*9.0+17.), fvn(position*9.0+41.)) - .5;
+        transformed += normalize(normal + curl*1.5 + messy*.9) * ${FUR_LEN.toFixed(3)} * fh;
+        transformed.y -= .06 * fh * fh;
+        transformed.x += sin(uTime*1.6 + position.y*3.0 + position.z*2.0) * .025 * fh * fh;`);
+      sh.fragmentShader = `uniform float uLayer; varying vec3 vFurP; ${GLSL_NOISE}\n` +
+        sh.fragmentShader.replace('#include <color_fragment>', `
+        #include <color_fragment>
+        float strands = fvn(vFurP*22.0)*.5 + fvn(vFurP*63.0)*.5;
+        float tuft = fvn(vFurP*4.5);
+        if (uLayer > 0.0 && strands*(.7 + .6*tuft) < mix(.1, .98, uLayer)) discard;
+        diffuseColor.rgb *= mix(.5, 1.08, pow(uLayer, .7));`);
+    };
+    m.customProgramCacheKey = () => 'fur';
+    furMats.push(m);
+  }
+  const furPart = (geo, mtx, color, lenFn = () => 1) => {
+    const p = geo.attributes.position, n = geo.attributes.normal;
+    const a = new Float32Array(p.count), cols = new Float32Array(p.count*3), c = new THREE.Color(color);
+    for (let i=0;i<p.count;i++){ a[i] = lenFn(p.getX(i), p.getY(i), p.getZ(i), n.getZ(i)); cols.set([c.r, c.g, c.b], i*3); }
+    geo.setAttribute('furLen', new THREE.BufferAttribute(a, 1));
+    geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+    return geo.applyMatrix4(mtx);
+  };
+  const M = (x,y,z, sx=1,sy=1,sz=1, rx=0,ry=0,rz=0) => new THREE.Matrix4().compose(
+    V(x,y,z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx,ry,rz)), V(sx,sy,sz));
+  const furMesh = geo => {
+    const g = new THREE.Group();
+    furMats.forEach((m,i) => { const mesh = new THREE.Mesh(geo, m); mesh.castShadow = i === 0; mesh.receiveShadow = true; g.add(mesh); });
+    return g;
+  };
+  const RUST = 0xbd6a33, CREAM = 0xf1e1c8, TAIL = 0xa95a2a;
+
+  const bodyGeo = new THREE.SphereGeometry(1, 64, 48);
+  { const p = bodyGeo.attributes.position;
+    for (let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i);
+      const k = 1 + .22*Math.max(0,-y) - .2*Math.max(0,y);
+      p.setXYZ(i, x*.95*k, y*1.25, z*.9*k); }
+    bodyGeo.computeVertexNormals(); }
+  const BY = 1.1 + 1.2;
+  const bodyParts = [
+    furPart(bodyGeo, M(0, BY, 0), RUST),
+    furPart(new THREE.SphereGeometry(.7, 32, 24), M(0, BY - .15, .52, .95, 1.25, .5), CREAM, () => .6),   // belly
+  ];
+  // big bushy tail: a curved chain of fluffy spheres
+  for (let i=0;i<10;i++){
+    const u = i/9;
+    const y = 1.5 + 4.6*u, z = -1.05 - 1.9*Math.sin(u*Math.PI*.85) + u*u*1.1, r = .5 + .42*Math.sin(u*Math.PI*.9);
+    bodyParts.push(furPart(new THREE.SphereGeometry(r, 24, 18), M(0, y, z), u > .75 ? 0xc98a4e : TAIL, () => 2.1));
+  }
+  for (const s of [-1,1]){
+    bodyParts.push(furPart(new THREE.SphereGeometry(.28, 24, 16), M(.42*s, BY + .65, .62, .8, 1.3, .8, -.6, 0, -.5*s), RUST, () => .6));   // arms holding the acorn
+    bodyParts.push(furPart(new THREE.SphereGeometry(.36, 24, 16), M(.48*s, 1.3, .45, .85, .5, 1.45), RUST, () => .5));                    // feet
+  }
+  const bodyFur = furMesh(mergeGeometries(bodyParts));
+  critter.add(bodyFur);
+  critter.userData.body = bodyFur;
+
+  const headParts = [
+    furPart(new THREE.SphereGeometry(.8, 64, 48), M(0,0,0, 1.05,.95,1.08), RUST,
+      (x,y,z,nz) => 1 - .55*sst(nz, .55, .92)*sst(y, -.45, -.15)*(1 - sst(y, .3, .5))),
+    furPart(new THREE.SphereGeometry(.32, 32, 24), M(0, -.18, .62, 1, .8, 1.1), CREAM, () => .25),     // muzzle
+  ];
+  for (const s of [-1,1]){
+    headParts.push(furPart(new THREE.SphereGeometry(.24, 24, 16), M(.42*s, .78, -.05, .6, 1.5, .4, 0, 0, -.25*s), RUST, () => 1.8));   // tufted ears
+    headParts.push(furPart(new THREE.SphereGeometry(.34, 24, 16), M(.42*s, -.25, .38, 1, .8, .8), CREAM, () => 1.1));                   // cheeks
+  }
+  critterHead.add(furMesh(mergeGeometries(headParts)));
+
+  const gloss = new THREE.MeshPhysicalMaterial({ color:0x0c0a08, roughness:.12, clearcoat:1, clearcoatRoughness:.05 });
+  for (const s of [-1,1]){
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(.14, 24, 16), gloss);
+    eye.position.set(.38*s, .14, .62);
+    critterHead.add(eye);
+  }
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(.09, 16, 12), new THREE.MeshPhysicalMaterial({ color:0x5a3a30, roughness:.25, clearcoat:1 }));
+  nose.position.set(0, -.1, .98); nose.scale.set(1.3, .9, .9);
+  critterHead.add(nose);
+  critterHead.position.y = BY + 1.75;
+  critter.add(critterHead);
+  critter.userData.headY = critterHead.position.y;
+
+  const held = makeAcornMeshes(.32);
+  held.position.set(0, BY + .55, .98); held.rotation.z = .3;
+  critter.add(held);
+
+  const spot = new THREE.SpotLight(0xffe2c0, 110, 30, .5, .6, 1.5);
+  spot.position.set(0, 14, 2); spot.target.position.set(0, 2, 0);
+  critter.add(spot, spot.target);
+  critter.position.copy(CREATURE);
+  scene.add(critter);
+}
+
+// ---------- falling leaves around the camera ----------
+const falling = (() => {
+  const N = 320, im = new THREE.InstancedMesh(leafGeo, leafMat, N);
+  im.frustumCulled = false;
+  const c = new THREE.Color();
+  const data = Array.from({ length:N }, (_, i) => { im.setColorAt(i, leafColor(c)); return {
+    p:V(rnd(-35,35), rnd(0,30), rnd(-35,35)), v:rnd(.8,1.8), ax:V(rnd(-1,1),rnd(-1,1),rnd(-1,1)).normalize(), ph:rnd(0,6), s:rnd(.35,.7) }; });
+  scene.add(im);
+  return { im, data };
+})();
+
+// ---------- sky clouds + ground mist ----------
+const skyClouds = [];
+for (let i=0;i<80;i++){
+  const s = cloudSprite(i%4 ? 0xeee4d6 : 0xb3a28e, .3 + Math.random()*.3, 40 + Math.random()*50, 14 + Math.random()*14);
+  s.position.set((Math.random()-.5)*180, 14 + Math.random()*36, 50 - Math.random()*320);
+  s.userData.v = .3 + Math.random()*.6; skyClouds.push(s); scene.add(s);
+}
+for (let i=0;i<40;i++){
+  const s = cloudSprite(0xf3ece2, .25 + Math.random()*.2, 30 + Math.random()*30, 6 + Math.random()*5);
+  s.position.set((Math.random()-.5)*90, 1.5 + Math.random()*2.5, 30 - Math.random()*270);
+  s.userData.v = .2 + Math.random()*.3; skyClouds.push(s); scene.add(s);
+}
+
+// ---------- camera path ----------
+const camPath = new THREE.CatmullRomCurve3([
+  V(13, 7, 27),  V(-12, 5.5, 14), V(-3, 18, 18), V(2, 8, -36),  V(11, 11, -54),
+  V(0, 8.5, -96), V(0, 7.5, -162), V(-2, 5, -192), V(4.5, 4.8, -199),
+  V(12, 9, -236), V(10, 6.5, -258),
+], false, 'catmullrom', .4);
+const lookPath = new THREE.CatmullRomCurve3([
+  V(0, 5.6, 0),  V(1, 5.5, 0),   V(0, 8, -3),   V(0, 9, -70),  V(-2, 8, -70),
+  V(0, 8, -140), V(0, 5, -210),  V(-1, 3, -210), V(-1.8, 3.6, -210),
+  V(0, 6, -275), V(-4.5, 5.8, -275),
+], false, 'catmullrom', .4);
+
+// ---------- dreamy post-processing (warm grade) ----------
+const composer = new EffectComposer(renderer);
+composer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+composer.setSize(innerWidth, innerHeight);
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .45, .9, .9));
+composer.addPass(new OutputPass());
+const dream = new ShaderPass({
+  uniforms:{ tDiffuse:{ value:null }, uTime:{ value:0 }, uCA:{ value:1 }, uFlash:{ value:0 }, uRipple:{ value:0 },
+             uRes:{ value:new THREE.Vector2(innerWidth, innerHeight) } },
+  vertexShader:`varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader:`
+    uniform sampler2D tDiffuse; uniform float uTime, uCA, uFlash, uRipple; uniform vec2 uRes; varying vec2 vUv;
+    float rnd(vec2 c){ return fract(sin(dot(c, vec2(12.9898,78.233)))*43758.5453); }
+    void main(){
+      vec2 uv = vUv, d = uv - .5;
+      float r = length(d*vec2(uRes.x/uRes.y, 1.));
+      float wave = sin(r*55. - uTime*7.) * exp(-r*2.5) * uRipple;
+      uv += normalize(d + 1e-5) * wave * .006;
+      vec2 ca = d * uCA * (.004 + r*r*.018);
+      vec3 col = vec3(texture2D(tDiffuse, uv + ca).r, texture2D(tDiffuse, uv).g, texture2D(tDiffuse, uv - ca).b);
+      vec2 px = 3.5 / uRes;
+      vec3 soft = (texture2D(tDiffuse, uv + vec2(px.x,0)).rgb + texture2D(tDiffuse, uv - vec2(px.x,0)).rgb +
+                   texture2D(tDiffuse, uv + vec2(0,px.y)).rgb + texture2D(tDiffuse, uv - vec2(0,px.y)).rgb) * .25;
+      col = mix(col, max(col, soft), .3);
+      float l = dot(col, vec3(.299,.587,.114));
+      col = mix(vec3(l), col, .84);
+      col = (col - .5)*1.08 + .5;
+      col = col*.95 + vec3(.04,.03,.016);                         // warm, faded lift
+      col += uRipple * .18 * pow(.5 + .5*sin(r*38. - uTime*5.), 24.) * exp(-r*1.5) * vec3(1.,.92,.8);
+      col = mix(col, vec3(1.,.96,.9), clamp(uFlash * (1.25 - r*.9), 0., 1.));
+      col *= mix(1., smoothstep(1.15, .25, r), .4);
+      col += .05 * smoothstep(.55, .75, r) * smoothstep(.95, .75, r) * vec3(1.,.9,.75);
+      col += (rnd(vUv*uRes + fract(uTime)*91.7) - .5) * .045;
+      gl_FragColor = vec4(col, 1.);
+    }`,
+});
+composer.addPass(dream);
+
+// ---------- interaction ----------
+let target = 0, prog = 0;
+const mouse = new THREE.Vector2(), mouseS = new THREE.Vector2();
+const onScroll = () => { const max = document.documentElement.scrollHeight - innerHeight; target = max > 0 ? scrollY/max : 0; };
+addEventListener('scroll', onScroll, { passive:true });
+addEventListener('pointermove', e => { mouse.set(e.clientX/innerWidth*2-1, -(e.clientY/innerHeight*2-1)); });
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
+  dream.uniforms.uRes.value.set(innerWidth, innerHeight); onScroll();
+});
+onScroll();
+
+const secs = [...document.querySelectorAll('.sec')].map(el => ({ el, at:parseFloat(el.dataset.at), hero:el.classList.contains('hero') }));
+const progEl = document.getElementById('prog'), pctEl = document.getElementById('pctScroll'), coordEl = document.getElementById('coord');
+
+// ---------- loop ----------
+const clock = new THREE.Clock();
+const camPos = V(0,0,0), look = V(0,0,0), tmp = V(0,0,0);
+const O = new THREE.Object3D(), Qt = new THREE.Quaternion();
+let debugFrame = false;
+function frame(){
+  const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
+  prog += (target - prog) * (1 - Math.pow(.001, dt));
+  mouseS.lerp(mouse, 1 - Math.pow(.02, dt));
+
+  camPath.getPoint(prog, camPos); lookPath.getPoint(prog, look);
+  camera.position.copy(camPos); camera.lookAt(look);
+  camera.translateX(mouseS.x * .9); camera.translateY(mouseS.y * .5); camera.lookAt(look);
+
+  sun.position.copy(look).add(tmp.set(40, 30, 28));
+  sun.target.position.copy(look);
+
+  // trees: leaves blow away while leaving the first scene, gather back in the last
+  treeA.update(sst(prog, .12, .28), t);
+  treeB.update(1 - sst(prog, .84, .985), t);
+
+  // acorn
+  acorn.rotation.y = t*.15;
+  acorn.position.y = ACORN.y + Math.sin(t*.8)*.5;
+  { const d = acornLeaves.userData.data;
+    d.forEach((u, i) => { const a = u.a + t*u.sp;
+      O.position.set(Math.cos(a)*u.r, u.y + Math.sin(t + u.a)*.6, Math.sin(a)*u.r);
+      O.quaternion.setFromAxisAngle(u.ax, t*1.2 + u.a); O.scale.setScalar(1.1); O.updateMatrix(); acornLeaves.setMatrixAt(i, O.matrix); });
+    acornLeaves.instanceMatrix.needsUpdate = true; }
+
+  // passage
+  const P = portal.userData, { ring, dust } = P;
+  ring.rotation.z = t*.1;
+  const pa = dust.geometry.attributes.position.array, sd = dust.userData.seed;
+  for (let i=0;i<dust.userData.N;i++){
+    const s = sd[i], a = s*Math.PI*2*7 + t*(.2 + s*.4), r = 6 + Math.sin(s*90 + t)*.9 + (s-.5)*2.4;
+    pa[i*3] = Math.cos(a)*r; pa[i*3+1] = Math.sin(a)*r; pa[i*3+2] = Math.sin(s*50+t*.7)*.8;
+  }
+  dust.geometry.attributes.position.needsUpdate = true;
+  const pz = camera.position.z - PORTAL.z;
+  const ap = 1 - sst(pz, 2, 20);
+  P.outer.rotation.z = t*.05; P.inner.rotation.z = -t*.11;
+  for (const s of P.segs){
+    const mid = s.rotation.z + s.userData.arc/2, off = ap*ap*6*s.userData.k;
+    s.position.set(Math.cos(mid)*off, Math.sin(mid)*off, Math.sin(t*.7 + s.userData.wob)*.35 + ap*s.userData.k*2);
+  }
+  P.vortex.material.uniforms.uTime.value = t;
+  P.vortex.material.uniforms.uOpen.value = ap;
+  P.vortex.scale.setScalar(1 + ap*.6);
+  P.vortex.visible = pz > .5;
+  P.halo.material.opacity = (.2 + ap*.35) * sst(pz, 1.5, 12);
+  P.tunnel.rotation.z = t*.12 + ap*1.5;
+  for (const f of P.frags){ f.position.copy(f.userData.p); f.position.y += Math.sin(t*.6 + f.userData.w)*.6; f.rotation.x = t*.2 + f.userData.w; f.rotation.y = t*.15; }
+  if (Math.abs(pz) < 90){
+    P.swirl.userData.data.forEach((u, i) => {
+      const a = u.a + t*u.sp*(1 + ap*2);
+      O.position.set(Math.cos(a)*u.r, Math.sin(a)*u.r, u.z + Math.sin(t*.5 + u.w)*1.5);
+      O.quaternion.setFromAxisAngle(u.ax, t*1.5 + u.w); O.scale.setScalar(u.s); O.updateMatrix(); P.swirl.setMatrixAt(i, O.matrix);
+    });
+    P.swirl.instanceMatrix.needsUpdate = true;
+  }
+  dream.uniforms.uTime.value = t;
+  dream.uniforms.uFlash.value = .95*Math.exp(-pz*pz/(2*3*3));
+  dream.uniforms.uRipple.value = pz < 0 ? Math.exp(-((pz + 13)**2)/(2*9*9)) : .25*ap;
+  dream.uniforms.uCA.value = 1 + 5*Math.exp(-pz*pz/(2*14*14));
+
+  // squirrel: breathing, tail sway, head follows camera/mouse
+  critter.userData.body.scale.y = 1 + Math.sin(t*2.4)*.012;
+  critter.userData.body.rotation.y = Math.sin(t*.9)*.03;
+  critterHead.position.y = critter.userData.headY + Math.sin(t*2.4)*.04;
+  furTime.value = t;
+  tmp.copy(camera.position); critter.worldToLocal(tmp);
+  critterHead.rotation.y += (Math.atan2(tmp.x, tmp.z)*.6 + mouseS.x*.3 - critterHead.rotation.y) * .05;
+  critterHead.rotation.x += (-mouseS.y*.2 - critterHead.rotation.x) * .05;
+  critterHead.rotation.z = Math.sin(t*.7)*.08;
+
+  // falling leaves follow the camera
+  { const { im, data } = falling;
+    im.position.set(camPos.x, 0, camPos.z);
+    data.forEach((d, i) => {
+      d.p.y -= dt*d.v; d.p.x += (Math.sin(t*.7 + d.ph)*.8 + .5)*dt; d.p.z += Math.cos(t*.5 + d.ph)*.4*dt;
+      if (d.p.y < 0) d.p.y += 30;
+      if (d.p.x > 35) d.p.x -= 70;
+      O.position.copy(d.p); O.quaternion.setFromAxisAngle(d.ax, t*1.6 + d.ph); O.scale.setScalar(d.s); O.updateMatrix();
+      im.setMatrixAt(i, O.matrix);
+    });
+    im.instanceMatrix.needsUpdate = true; }
+
+  for (const s of skyClouds){ s.position.x += dt*s.userData.v; if (s.position.x > 95) s.position.x = -95; }
+  for (const s of allClouds){
+    s.getWorldPosition(tmp);
+    s.material.opacity = s.userData.o * sst(tmp.distanceTo(camera.position), s.userData.near*.4, s.userData.near*1.4);
+  }
+
+  // UI
+  for (const s of secs){
+    const d = Math.abs(prog - s.at), o = THREE.MathUtils.clamp(1 - (d - .03)/.06, 0, 1);
+    s.el.style.opacity = o;
+    const y = (prog - s.at) * -160;
+    s.el.style.transform = s.hero ? `translate(-50%, calc(-50% + ${y}px))` : `translateY(${y}px)`;
+  }
+  progEl.style.width = (prog*100).toFixed(2) + '%';
+  pctEl.textContent = String(Math.round(prog*100)).padStart(3,'0') + '%';
+  coordEl.textContent = `N 44°${String(21 + Math.floor(prog*30)).padStart(2,'0')}′ W 72°${String(45 - Math.floor(prog*30)).padStart(2,'0')}′`;
+
+  composer.render();
+  if (!debugFrame) requestAnimationFrame(frame);
+}
+
+// debug hook: jump straight to a scroll position and draw one frame
+window.__jump = v => {
+  scrollTo(0, v * (document.documentElement.scrollHeight - innerHeight));
+  prog = target = v; clock.getDelta();
+  debugFrame = true; frame(); debugFrame = false;
+};
+
+let p = 0; const pctLoader = document.getElementById('pct');
+const li = setInterval(() => { p = Math.min(99, p + 7 + Math.random()*12); pctLoader.textContent = Math.floor(p); }, 60);
+renderer.compile(scene, camera);
+requestAnimationFrame(() => {
+  frame();
+  setTimeout(() => { clearInterval(li); pctLoader.textContent = 100; document.getElementById('loader').classList.add('done'); }, 700);
+});
+</script>
+</body>
+</html>
